@@ -22,9 +22,6 @@ const serviceAccount = {
     client_x509_cert_url: process.env.CLIENT_X509_CERT_URL
 } 
 
-
-console.log(serviceAccount);
-
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
 });
@@ -35,5 +32,5 @@ rotasTorneio.addRotasTorneio(app, db);
 
 // Start the app by listening on the default Heroku port
 app.listen(process.env.PORT || 8080, () => {
-    console.log('Iniciado');
+    console.log('Iniciado ');
 });
