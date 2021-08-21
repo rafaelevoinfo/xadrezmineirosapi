@@ -1,4 +1,3 @@
-const { restart } = require('nodemon');
 const TorneioController = require('../controllers/torneios.controller')
 
 function instanciarController(ipDb) {
