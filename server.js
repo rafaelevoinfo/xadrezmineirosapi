@@ -1,7 +1,6 @@
 require('dotenv').config();
 
 const express = require('express');
-const serviceAccount2 = require("./serviceAccountKey.json");
 const admin = require('firebase-admin');
 const rotasTorneio = require('./routers/torneio.router')
 const cors = require('cors')
