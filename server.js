@@ -12,7 +12,7 @@ const jwt = require('jsonwebtoken')
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(require('./middlewares/auth.middleware'))
+//app.use(require('./middlewares/auth.middleware'))
 
 const firebaseConfig = {
     apiKey: process.env.API_KEY,
