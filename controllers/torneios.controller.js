@@ -1,9 +1,43 @@
-const Torneio = require("../models/types");
+const { Log, LogLevel } = require("../log");
+const {Torneio} = require("../models/types");
 
 class TorneioController {
 
   constructor(ipFirestore) {
     this.firestore = ipFirestore;
+  }
+
+  tratarRetornoFirebase(ipSnapshot){
+    let vaResult = [];
+    if (ipSnapshot.empty) {
+      console.log('Nenhum torneio encontrado!');
+      return;
+    }
+
+    ipSnapshot.forEach(doc => {
+      let vaTorneio = this.castDocumentDataToTorneio(doc);
+      if (vaTorneio) {
+        vaResult.push(vaTorneio);
+      }
+    });
+
+    vaResult = vaResult.sort((t1, t2) => {
+      return t1.data_inicio.getTime() - t2.data_inicio.getTime()
+    })
+
+    return vaResult;
+  }
+
+  async buscarTorneiosPorStatus(ipStatus){
+    try {      
+      let vaTorneiosRef = this.firestore.collection('torneios');
+      let vaSnapshot = undefined;
+      vaSnapshot = await vaTorneiosRef.where("status", '==', ipStatus).get()     
+      return this.tratarRetornoFirebase(vaSnapshot);
+    } catch (error) {
+      console.log(error);
+      return [];
+    }    
   }
 
   async buscarTorneios(ipSomenteAtivos) {
@@ -17,23 +51,7 @@ class TorneioController {
         vaSnapshot = await vaTorneiosRef.get();
       }
 
-      if (vaSnapshot.empty) {
-        console.log('Nenhum torneio encontrado!');
-        return;
-      }
-
-      vaSnapshot.forEach(doc => {
-        let vaTorneio = this.castDocumentDataToTorneio(doc);
-        if (vaTorneio) {
-          vaResult.push(vaTorneio);
-        }
-      });
-
-      vaResult = vaResult.sort((t1, t2) => {
-        return t1.data_inicio.getTime() - t2.data_inicio.getTime()
-      })
-
-      return vaResult;
+      return this.tratarRetornoFirebase(vaSnapshot);
 
     } catch (error) {
       console.log(error);
@@ -67,6 +85,7 @@ class TorneioController {
         await vaDocRef.update(this.createObject(ipTorneio));  
         return true;
       } catch (error) {
+        Log.logError("Erro ao tentar atualizar um torneio", LogLevel.RELEASE, error);
         return false;
       }      
     }else{
@@ -109,16 +128,29 @@ class TorneioController {
       vaObj.rodadas.push(vaRodada);
     });
 
-    return vaObj;
+    //precisamos trocar todos os camps undefined por null senao o Firestore nao aceita
+    return this.removeUndefined(vaObj);
+  }
+
+  removeUndefined(ipObj){
+    for (const key in ipObj) {
+      if (ipObj[key]===undefined){
+        ipObj[key]=null
+      }else if (ipObj[key] instanceof Object){
+        this.removeUndefined(ipObj[key])
+      }      
+    }
+
+    return ipObj;
   }
 
 
   castDocumentDataToTorneio(ipDoc) {
     if ((ipDoc) && (ipDoc.exists)) {
-      let vaData = ipDoc.data();
-      let vaTorneio = Object.assign(new Torneio, vaData);
+      let vaData = ipDoc.data();      
+      let vaTorneio = Object.assign(new Torneio(), vaData);
       vaTorneio.id = ipDoc.id;
-      vaTorneio.data_inicio = new Date(vaData.data_inicio.seconds * 1000);
+      vaTorneio.data_inicio = new Date(vaData.data_inicio.seconds * 1000);      
       for (const vaRodada of vaTorneio.rodadas) {
         let vaDataSec = vaRodada.data_inicio;
         vaRodada.data_inicio = new Date(vaDataSec.seconds * 1000);
