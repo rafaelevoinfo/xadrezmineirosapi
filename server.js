@@ -15,7 +15,7 @@ app.use(express.json());
 
 const db = firebase.firestore();
 const auth = firebase.auth();
-
+//TODO: Implementar login daquela forma que não precisa de usuario e senha
 rotasTorneio.addRotasTorneio(app, db);
 rotasLogin.addRotasLogin(app, auth);
 

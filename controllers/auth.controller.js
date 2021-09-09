@@ -9,20 +9,22 @@ function authorize(req, res) {
         });
         return false
     }
-
+    let vaResult = false;
     jwt.verify(token, process.env.SECRET, function (err, decoded) {
         if (err) {
             res.status(500).json({
                 auth: false,
                 message: err.message == "jwt expired" ? "expirado" : "token inválido"
             });
-            return false;
+            return;
         }
 
         // se tudo estiver ok, salva no request para uso posterior
         req.email = decoded.email;
-        return true;
+        vaResult = true;
     });
+
+    return vaResult;
 }
 
 module.exports = authorize
