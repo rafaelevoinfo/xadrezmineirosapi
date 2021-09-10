@@ -16,7 +16,7 @@ function addRotas(app, db) {
   app.put("/torneio/start/:id", async (req, res) => {
     if (authorize(req, res)) {
       let vaController = instanciarController(db);
-      let vaTorneio = vaController.buscarTorneio(req.params.id);
+      let vaTorneio = await vaController.buscarTorneio(req.params.id);
       if (vaTorneio) {
         vaTorneio.status = 1;
         let vaOrganizer = new TournamentOrganizer();
@@ -54,8 +54,10 @@ function addRotas(app, db) {
       res.status(200).send(vaTorneios);
     })
     .put(async (req, res) => {
+      console.log(req.body)  
       if (authorize(req, res)) {
         let vaController = instanciarController(db);
+      
         let vaSalvou = await vaController.atualizarTorneio(
           req.params.id,
           req.body

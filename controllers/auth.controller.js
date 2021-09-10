@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken')
+const {Log} = require('../log')
 
-function authorize(req, res) {
+async function authorize(req, res, authServer) {
     const token = req.headers['x-access-token'];
     if (!token) {
         res.status(401).json({
@@ -10,6 +11,7 @@ function authorize(req, res) {
         return false
     }
     let vaResult = false;
+        
     jwt.verify(token, process.env.SECRET, function (err, decoded) {
         if (err) {
             res.status(500).json({

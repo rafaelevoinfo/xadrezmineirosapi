@@ -13,7 +13,7 @@ module.exports = class TournamentOrganizer {
       seededPlayers: true,
       numberOfRounds: ipTorneio.qtde_rodadas,
     });
-
+console.log(ipTorneio)
     for (const vaJogador of ipTorneio.jogadores) {
       vaTorneioSwiss.addPlayer(
         vaJogador.nome,
@@ -52,7 +52,7 @@ module.exports = class TournamentOrganizer {
 
   processarRodada(ipTorneio) {
     let vaResult = false;
-    let vaTorneioSwiss = criarTorneioSuico(ipTorneio);
+    let vaTorneioSwiss = this.criarTorneioSuico(ipTorneio);
 
     //vamos pegar a proxima rodada se disponivel
     if (vaTorneioSwiss.currentRound >= 0 && vaTorneioSwiss.active) {
