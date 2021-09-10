@@ -14,7 +14,7 @@ const rotasTorneio = require('./routers/torneio.router')
 const rotasLogin = require('./routers/login.router')
 
 //app.use(require('./middlewares/auth.middleware'))
-
+console.log(process.env.PRIVATE_KEY);
 firebase_admin.initializeApp({
   credential: firebase_admin.credential.cert({
     type: process.env.TYPE,
