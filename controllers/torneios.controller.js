@@ -6,7 +6,7 @@ class TorneioController {
     this.firestore = ipFirestore;
   }
 
-  tratarRetornoFirebase(ipSnapshot) {
+  tratarRetornoFirebase(ipSnapshot, ipFiltros) {
     let vaResult = [];
     if (ipSnapshot.empty) {
       console.log("Nenhum torneio encontrado!");
@@ -16,7 +16,15 @@ class TorneioController {
     ipSnapshot.forEach((doc) => {
       let vaTorneio = this.castDocumentDataToTorneio(doc);
       if (vaTorneio) {
-        vaResult.push(vaTorneio);
+        let vaValido = true;
+        if (ipFiltros) {
+          if ((ipFiltros.nome) && (!vaTorneio.nome.toUpperCase().startsWith(ipFiltros.nome.toUpperCase()))) {
+            vaValido = false;
+          }
+        }
+        if (vaValido) {
+          vaResult.push(vaTorneio);
+        }
       }
     });
 
@@ -39,18 +47,33 @@ class TorneioController {
     }
   }
 
-  async buscarTorneios(ipSomenteAtivos) {
+  async buscarTorneios(ipQueryString) {
     try {
       let vaResult = [];
       let vaTorneiosRef = this.firestore.collection("torneios");
       let vaSnapshot = undefined;
-      if (ipSomenteAtivos) {
+
+
+      if (!ipQueryString.inativos) {
         vaSnapshot = await vaTorneiosRef.where("status", "!=", 2).get();
+      } else if (ipQueryString.nome) {
+        let strlength = ipQueryString.nome.length;
+        let strFrontCode = ipQueryString.nome.slice(0, strlength - 1);
+        let strEndCode = ipQueryString.nome.slice(strlength - 1, ipQueryString.nome.length);
+
+        let startcode = ipQueryString.nome;
+        let endcode = strFrontCode + String.fromCharCode(strEndCode.charCodeAt(0) + 1);
+        vaSnapshot = await vaTorneiosRef
+          .where("nome", ">=", startcode)
+          .where("nome", "<", endcode)
+          .get();
+        //como ja fizemos o filtro diretamete no banco, entao nao preciso mais filtrar
+        ipQueryString.nome = undefined;
       } else {
         vaSnapshot = await vaTorneiosRef.get();
       }
 
-      return this.tratarRetornoFirebase(vaSnapshot);
+      return this.tratarRetornoFirebase(vaSnapshot, ipQueryString);
     } catch (error) {
       console.log(error);
       return [];
@@ -157,11 +180,11 @@ class TorneioController {
 
   castDocumentDataToTorneio(ipDoc) {
     if (ipDoc && ipDoc.exists) {
-      let vaData = ipDoc.data();
-      Log.logInfo('Torneio Firestore', LogLevel.DEBUG, vaData)
-      let vaTorneio = Object.assign(new Torneio(), vaData);
-      vaTorneio.id = ipDoc.id;    
-      vaTorneio.data_inicio = new Date(vaData.data_inicio.seconds * 1000);
+      let vaDocData = ipDoc.data();
+      Log.logInfo('Torneio Firestore', LogLevel.DEBUG, vaDocData)
+      let vaTorneio = Object.assign(new Torneio(), vaDocData);
+      vaTorneio.id = ipDoc.id;
+      vaTorneio.data_inicio = new Date(vaDocData.data_inicio.seconds * 1000);
       for (const vaRodada of vaTorneio.rodadas) {
         let vaDataSec = vaRodada.data_inicio;
         vaRodada.data_inicio = new Date(vaDataSec.seconds * 1000);

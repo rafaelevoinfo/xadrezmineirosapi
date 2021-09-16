@@ -9,12 +9,12 @@ function instanciarController(ipDb) {
 function addRotas(app, db) {
   app.get("/torneios", async (req, res) => {
     let vaController = instanciarController(db);
-    let vaTorneios = await vaController.buscarTorneios(!req.query.inativos);
+    let vaTorneios = await vaController.buscarTorneios(req.query);
     res.status(200).send(vaTorneios);
   });
 
   app.put("/torneio/start/:id", async (req, res) => {
-    if (authorize(req, res)) {
+    if (await authorize(req, res)) {
       let vaController = instanciarController(db);
       let vaTorneio = await vaController.buscarTorneio(req.params.id);
       if (vaTorneio) {
@@ -33,12 +33,10 @@ function addRotas(app, db) {
               .send({ error: "Não foi possível salvar o registro." });
           }
         } else {
-          res
-            .status(500)
-            .send({
-              error:
-                "Não foi possível criar os emparceiramentos da primeira rodada.",
-            });
+          res.status(500).send({
+            error:
+              "Não foi possível criar os emparceiramentos da primeira rodada.",
+          });
         }
       } else {
         res.status(404).send();
@@ -54,10 +52,10 @@ function addRotas(app, db) {
       res.status(200).send(vaTorneios);
     })
     .put(async (req, res) => {
-      console.log(req.body)  
-      if (authorize(req, res)) {
+      console.log(req.body);
+      if (await authorize(req, res)) {
         let vaController = instanciarController(db);
-      
+
         let vaSalvou = await vaController.atualizarTorneio(
           req.params.id,
           req.body
@@ -65,32 +63,31 @@ function addRotas(app, db) {
         if (vaSalvou) {
           res.status(200).send();
         } else {
-          res.status(404).send('Não foi possível salvar o torneio.');
+          res.status(404).send("Não foi possível salvar o torneio.");
         }
       }
     })
     .delete(async (req, res) => {
-      if (authorize(req, res)) {
+      if (await authorize(req, res)) {
         let vaController = instanciarController(db);
         let vaSalvou = await vaController.excluirTorneio(req.params.id);
         if (vaSalvou) {
           res.status(200).send();
         } else {
-          res.status(404).send('Torneio não foi excluído.');
+          res.status(404).send("Torneio não foi excluído.");
         }
       }
     });
 
   app.post("/torneio", async (req, res) => {
-    if (authorize(req, res)) {
+    if (await authorize(req, res)) {
       let vaController = instanciarController(db);
       let vaId = await vaController.incluirTorneio(req.body);
-      if (vaId){
+      if (vaId) {
         res.status(200).send(vaId);
-      }else{
-        res.status(500).send('Torneio não foi salvo.');
+      } else {
+        res.status(500).send("Torneio não foi salvo.");
       }
-      
     }
   });
 }
