@@ -21,6 +21,7 @@ async function authorize(req, res, authServer) {
             return;
         }
 
+        Log.logInfo("Token: "+token);
         // se tudo estiver ok, salva no request para uso posterior
         req.email = decoded.email;
         vaResult = true;

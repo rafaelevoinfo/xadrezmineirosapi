@@ -13,7 +13,7 @@ module.exports = class TournamentOrganizer {
       seededPlayers: true,
       numberOfRounds: ipTorneio.qtde_rodadas,
     });
-console.log(ipTorneio)
+
     for (const vaJogador of ipTorneio.jogadores) {
       vaTorneioSwiss.addPlayer(
         vaJogador.nome,

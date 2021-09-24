@@ -1,4 +1,5 @@
 const { Log, LogLevel } = require("../log");
+const { ServerError } = require("../middlewares/handle_error.middleware");
 const { Torneio } = require("../models/types");
 
 class TorneioController {
@@ -99,6 +100,27 @@ class TorneioController {
       ipTorneio.id = vaDocument.id;
     }
     return vaDocument.id;
+  }
+
+  async iniciarTorneio(ipIdTorneio){
+    let vaTorneio = await this.buscarTorneio(ipIdTorneio);
+      if (vaTorneio) {
+        vaTorneio.status = 1;
+        let vaOrganizer = new TournamentOrganizer();
+        if (vaOrganizer.processarRodada(vaTorneio)) {
+          let vaSalvou = await this.atualizarTorneio(
+            req.params.id,
+            vaTorneio
+          );
+          if (!vaSalvou) {
+            throw new ServerError("Não foi possível salvar o registro.", 500)            
+          }
+        } else {
+          throw new ServerError("Não foi possível criar os emparceiramentos da primeira rodada.", 500)          
+        }
+      } else {        
+        throw new ServerError("Torneio não encontrado.", 404)                  
+      }
   }
 
   async atualizarTorneio(ipId, ipTorneio) {

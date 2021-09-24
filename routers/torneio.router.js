@@ -16,31 +16,8 @@ function addRotas(app, db) {
   app.put("/torneio/start/:id", async (req, res) => {
     if (await authorize(req, res)) {
       let vaController = instanciarController(db);
-      let vaTorneio = await vaController.buscarTorneio(req.params.id);
-      if (vaTorneio) {
-        vaTorneio.status = 1;
-        let vaOrganizer = new TournamentOrganizer();
-        if (vaOrganizer.processarRodada(vaTorneio)) {
-          let vaSalvou = await vaController.atualizarTorneio(
-            req.params.id,
-            vaTorneio
-          );
-          if (vaSalvou) {
-            res.status(200).send();
-          } else {
-            res
-              .status(404)
-              .send({ error: "Não foi possível salvar o registro." });
-          }
-        } else {
-          res.status(500).send({
-            error:
-              "Não foi possível criar os emparceiramentos da primeira rodada.",
-          });
-        }
-      } else {
-        res.status(404).send();
-      }
+      await vaController.iniciarTorneio(req.params.id);
+      res.status(200).send()
     }
   });
 
@@ -51,8 +28,7 @@ function addRotas(app, db) {
       let vaTorneios = await vaController.buscarTorneio(req.params.id);
       res.status(200).send(vaTorneios);
     })
-    .put(async (req, res) => {
-      console.log(req.body);
+    .put(async (req, res) => {      
       if (await authorize(req, res)) {
         let vaController = instanciarController(db);
 
