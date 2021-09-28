@@ -12,7 +12,7 @@ async function verificarJogos() {
     let vaOrganizer = new TournamentOrganizer();
     for (const vaTorneio of vaTorneios) {
       Log.logInfo("Torneio encontrado.", LogLevel.DEBUG, vaTorneio);
-      let vaProcessou = vaOrganizer.processarRodada(vaTorneio);
+      let vaProcessou = await vaOrganizer.processarRodada(vaTorneio);
       if (vaProcessou) {
         Log.logInfo(
           "Torneio processado. Atualizando banco de dados.",

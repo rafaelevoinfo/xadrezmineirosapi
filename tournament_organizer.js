@@ -1,8 +1,14 @@
 const { EventManager } = require("tournament-organizer");
 const { Rodada, Partida, Jogador } = require("./models/types");
 const { Log, LogLevel } = require("./log");
+const { LichessApi } = require('./lichess-api.js');
 
 module.exports = class TournamentOrganizer {
+
+  constructor(){    
+    this.chessApi = new LichessApi();
+  }
+
   criarTorneioSuico(ipTorneio) {
     let torneioManager = new EventManager();
     const vaTorneioSwiss = torneioManager.createTournament(null, {
@@ -50,7 +56,7 @@ module.exports = class TournamentOrganizer {
     return vaTorneioSwiss;
   }
 
-  processarRodada(ipTorneio) {
+  async processarRodada(ipTorneio) {
     let vaResult = false;
     let vaTorneioSwiss = this.criarTorneioSuico(ipTorneio);
 
@@ -84,10 +90,47 @@ module.exports = class TournamentOrganizer {
           vaResult = true;
         }
       }
+
+      if (await this.buscarResultados(ipTorneio)){
+        vaResult = true;
+      }
     } else {
       ipTorneio.status = 2;
       vaResult = true;
     }
     return vaResult;
+  }
+
+  async buscarResultados(ipTorneio) {
+    let vaResult = false;
+    let vaRodada = ipTorneio.rodadas[ipTorneio.rodada_atual - 1];
+    if (vaRodada) {
+      for (const vaPartida of vaRodada.partidas) {
+        if (await this.pegarResultado(ipTorneio, vaRodada, vaPartida)) {
+          vaResult = true;
+        }
+      }
+    }
+
+    return vaResult;
+  }
+
+  async pegarResultado(ipTorneio, ipRodada, ipPartida) {
+    let vaResultados = await this.chessApi.pegarResultadoJogos(ipPartida.jogadorBrancas.username, {
+      vs: ipPartida.jogadorNegras.username,
+      max: 1,
+      rated: true,
+      since: ipRodada.data_inicio.getTime(),
+      ritmo: ipTorneio.ritmo,
+      color: 'white'
+    });
+
+    if (vaResultados && (vaResultados.length > 0)) {
+      ipPartida.resultado = vaResultados[0].resultado;
+      ipPartida.link = vaResultados[0].link_partida;
+      return true;
+    }
+
+    return false;
   }
 };

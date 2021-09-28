@@ -1,6 +1,7 @@
 const { Log, LogLevel } = require("../log");
 const { ServerError } = require("../middlewares/handle_error.middleware");
 const { Torneio } = require("../models/types");
+const TournamentOrganizer = require("../tournament_organizer");
 
 class TorneioController {
   constructor(ipFirestore) {
@@ -107,9 +108,9 @@ class TorneioController {
       if (vaTorneio) {
         vaTorneio.status = 1;
         let vaOrganizer = new TournamentOrganizer();
-        if (vaOrganizer.processarRodada(vaTorneio)) {
+        if (await vaOrganizer.processarRodada(vaTorneio)) {
           let vaSalvou = await this.atualizarTorneio(
-            req.params.id,
+            ipIdTorneio,
             vaTorneio
           );
           if (!vaSalvou) {
@@ -152,8 +153,7 @@ class TorneioController {
     }
   }
 
-  createObject(ipTorneio) {
-    Log.logInfo('Torneio que veio do cliente', LogLevel.DEBUG, ipTorneio)
+  createObject(ipTorneio) {    
     let vaObj = Object.assign({}, ipTorneio);
     vaObj.data_inicio = new Date(ipTorneio.data_inicio);
     vaObj.jogadores = [];
@@ -202,8 +202,7 @@ class TorneioController {
 
   castDocumentDataToTorneio(ipDoc) {
     if (ipDoc && ipDoc.exists) {
-      let vaDocData = ipDoc.data();
-      Log.logInfo('Torneio Firestore', LogLevel.DEBUG, vaDocData)
+      let vaDocData = ipDoc.data();      
       let vaTorneio = Object.assign(new Torneio(), vaDocData);
       vaTorneio.id = ipDoc.id;
       vaTorneio.data_inicio = new Date(vaDocData.data_inicio.seconds * 1000);
