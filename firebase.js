@@ -12,7 +12,7 @@ firebase.initializeApp({
   appId: process.env.APP_ID,
 });
 
-console.log('CLIENT_EMAIL', process.evn.CLIENT_EMAIL);
+console.log('CLIENT_EMAIL', process.env.CLIENT_EMAIL);
 
 firebase_admin.initializeApp({
   credential: firebase_admin.credential.cert({
