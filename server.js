@@ -14,6 +14,7 @@ app.use(express.json());
 
 const rotasTorneio = require('./routers/torneio.router')
 const rotasLogin = require('./routers/login.router')
+const rotasJogador = require('./routers/jogador.router')
 
 //app.use(require('./middlewares/auth.middleware'))
 
@@ -23,6 +24,7 @@ const auth = firebase.auth();
 
 rotasTorneio.addRotasTorneio(app, db);
 rotasLogin.addRotasLogin(app, auth);
+rotasJogador.addRotasJogador(app);
 
 app.use(handle_error);
 

@@ -103,25 +103,25 @@ class TorneioController {
     return vaDocument.id;
   }
 
-  async iniciarTorneio(ipIdTorneio){
+  async iniciarTorneio(ipIdTorneio) {
     let vaTorneio = await this.buscarTorneio(ipIdTorneio);
-      if (vaTorneio) {
-        vaTorneio.status = 1;
-        let vaOrganizer = new TournamentOrganizer();
-        if (await vaOrganizer.processarRodada(vaTorneio)) {
-          let vaSalvou = await this.atualizarTorneio(
-            ipIdTorneio,
-            vaTorneio
-          );
-          if (!vaSalvou) {
-            throw new ServerError("Não foi possível salvar o registro.", 500)            
-          }
-        } else {
-          throw new ServerError("Não foi possível criar os emparceiramentos da primeira rodada.", 500)          
+    if (vaTorneio) {
+      vaTorneio.status = 1;
+      let vaOrganizer = new TournamentOrganizer();
+      if (await vaOrganizer.processarRodada(vaTorneio)) {
+        let vaSalvou = await this.atualizarTorneio(
+          ipIdTorneio,
+          vaTorneio
+        );
+        if (!vaSalvou) {
+          throw new ServerError("Não foi possível salvar o registro.", 500)
         }
-      } else {        
-        throw new ServerError("Torneio não encontrado.", 404)                  
+      } else {
+        throw new ServerError("Não foi possível criar os emparceiramentos da primeira rodada.", 500)
       }
+    } else {
+      throw new ServerError("Torneio não encontrado.", 404)
+    }
   }
 
   async atualizarTorneio(ipId, ipTorneio) {
@@ -153,7 +153,31 @@ class TorneioController {
     }
   }
 
-  createObject(ipTorneio) {    
+  async processarTorneio(ipId) {
+    let vaTorneio = await this.buscarTorneio(ipId);
+    if (vaTorneio) {
+      Log.logInfo('Torneio encontrado', LogLevel.DEBUG, vaTorneio);
+      let vaOrganizer = new TournamentOrganizer();
+      let vaProcessou = await vaOrganizer.processarRodada(vaTorneio);
+      if (vaProcessou) {
+        Log.logInfo(
+          "Torneio processado. Atualizando banco de dados.",
+          LogLevel.DEBUG,
+          vaTorneio
+        );
+        await this.atualizarTorneio(vaTorneio.id, vaTorneio);
+        return vaTorneio;
+      }else{
+        return null;
+      }
+    } else{
+      Log.logInfo("Torneio não encontrado para ser processado");
+      return null;
+    }
+   
+  }
+
+  createObject(ipTorneio) {
     let vaObj = Object.assign({}, ipTorneio);
     vaObj.data_inicio = new Date(ipTorneio.data_inicio);
     vaObj.jogadores = [];
@@ -202,7 +226,7 @@ class TorneioController {
 
   castDocumentDataToTorneio(ipDoc) {
     if (ipDoc && ipDoc.exists) {
-      let vaDocData = ipDoc.data();      
+      let vaDocData = ipDoc.data();
       let vaTorneio = Object.assign(new Torneio(), vaDocData);
       vaTorneio.id = ipDoc.id;
       vaTorneio.data_inicio = new Date(vaDocData.data_inicio.seconds * 1000);

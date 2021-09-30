@@ -19,7 +19,7 @@ async function verificarJogos() {
           LogLevel.DEBUG,
           vaTorneio
         );
-        vaController.atualizarTorneio(vaTorneio.id, vaTorneio);
+        await vaController.atualizarTorneio(vaTorneio.id, vaTorneio);
       }
     }
   }

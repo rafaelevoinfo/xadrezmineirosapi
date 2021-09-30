@@ -113,6 +113,17 @@ class LichessApi {
     return vaGames;
 
   }
+
+  async buscarUsuario(ipUsername) {
+    const vaResponse = await fetch(this.baseUrl + 'user/' + ipUsername, {
+      method: 'GET'
+    });
+
+    if (vaResponse.status == 200) {
+      return await vaResponse.json();
+    }
+
+  }
 }
 
 

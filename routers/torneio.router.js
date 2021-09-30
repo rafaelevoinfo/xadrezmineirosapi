@@ -21,6 +21,18 @@ function addRotas(app, db) {
     }
   });
 
+  app.get("/torneio/processar/:id", async (req, res) => {
+    if (await authorize(req, res)) {
+      let vaController = instanciarController(db);
+      let vaTorneio = await vaController.processarTorneio(req.params.id);
+      if (vaTorneio){
+        res.status(200).send(vaTorneio)
+      }else{
+        res.status(204).send();
+      }      
+    }
+  });
+
   app
     .route("/torneio/:id")
     .get(async (req, res) => {
