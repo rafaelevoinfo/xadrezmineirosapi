@@ -1,77 +1,104 @@
 const { EventManager } = require("tournament-organizer");
-const { Rodada, Partida, Jogador } = require("./models/types");
+const { Rodada, Partida, Jogador, TIPO_TORNEIO_SUICO, TIPO_TORNEIO_PONTOS_CORRIDOS } = require("./models/types");
 const { Log, LogLevel } = require("./log");
 const { LichessApi } = require('./lichess-api.js');
 
 module.exports = class TournamentOrganizer {
 
-  constructor(){    
+  constructor() {
     this.chessApi = new LichessApi();
   }
 
-  criarTorneioSuico(ipTorneio) {
+  criarTorneio(ipTorneio) {
     let torneioManager = new EventManager();
-    const vaTorneioSwiss = torneioManager.createTournament(null, {
-      name: ipTorneio.nome,
-      format: "swiss",
-      dutch: true,
-      seedOrder: "des",
-      seededPlayers: true,
-      numberOfRounds: ipTorneio.qtde_rodadas,
-    });
+    let vaTorneio = undefined;
+    if (ipTorneio.tipo == TIPO_TORNEIO_SUICO) {
+      vaTorneio = torneioManager.createTournament(null, {
+        name: ipTorneio.nome,
+        format: "swiss",
+        dutch: true,
+        seedOrder: "des",
+        seededPlayers: true,
+        numberOfRounds: ipTorneio.qtde_rodadas,
+      });
+    } else if (ipTorneio.tipo == TIPO_TORNEIO_PONTOS_CORRIDOS) {
+      vaTorneio = torneioManager.createTournament(null, {
+        name: ipTorneio.nome,
+        format: "pontos-corridos",
+        seededPlayers: true,
+        numberOfPhases: ipTorneio.qtde_rodadas,
+      });
+    }
 
     for (const vaJogador of ipTorneio.jogadores) {
-      vaTorneioSwiss.addPlayer(
+      vaTorneio.addPlayer(
         vaJogador.nome,
         vaJogador.username,
         vaJogador.rating
       );
     }
 
-    vaTorneioSwiss.startEvent();
+    vaTorneio.startEvent();
 
-    //vamos alimentar o vaTorneioSwiss com as informações que ja temos
+    //vamos alimentar o vaTorneio com as informações que ja temos
     if (ipTorneio.rodadas && ipTorneio.rodadas.length > 0) {
       for (let i = 0; i < ipTorneio.rodadas.length; i++) {
         let vaRodada = ipTorneio.rodadas[i];
-        let vaMatches = vaTorneioSwiss.activeMatches(i + 1);
+        let vaMatches = vaTorneio.activeMatches(i + 1);
         for (const vaMatch of vaMatches) {
-          let vaPartida = vaRodada.partidas.find((p) => {
-            return (
-              p.jogadorBrancas.username == vaMatch.playerOne.id &&
-              p.jogadorNegras.username == vaMatch.playerTwo.id
-            );
-          });
+          if ((!vaRodada.fase) || (vaMatch.phase == vaRodada.fase)) {
+            let vaPartida = vaRodada.partidas.find((p) => {
+              return (
+                p.jogadorBrancas.username == vaMatch.playerOne.id &&
+                p.jogadorNegras.username == vaMatch.playerTwo.id
+              );
+            });
 
-          if (vaPartida && vaPartida.resultado) {
-            let vaPlayerOneWins = vaPartida.resultado == "1-0" ? 1 : 0;
-            let vaPlayerTwoWins = vaPartida.resultado == "0-1" ? 1 : 0;
+            if (vaPartida && vaPartida.resultado) {
+              let vaPlayerOneWins = vaPartida.resultado == "1-0" ? 1 : 0;
+              let vaPlayerTwoWins = vaPartida.resultado == "0-1" ? 1 : 0;
 
-            vaTorneioSwiss.result(vaMatch, vaPlayerOneWins, vaPlayerTwoWins);
+              vaTorneio.result(vaMatch, vaPlayerOneWins, vaPlayerTwoWins);
+            }
           }
         }
+        vaTorneio.nextRound();
       }
     }
 
-    return vaTorneioSwiss;
+    return vaTorneio;
+  }
+
+  calcularPontuacao(ipTorneio) {
+    let vaTorneio = this.criarTorneio(ipTorneio);
+    let vaJogadores = vaTorneio.standings();
+    for (const vaJog of vaJogadores) {
+      let vaJogador = ipTorneio.jogadores.find((j) => j.username == vaJog.id);
+      if (vaJogador) {
+        vaJogador.pontos = vaJog.matchPoints;
+      }
+    }
   }
 
   async processarRodada(ipTorneio) {
     let vaResult = false;
-    let vaTorneioSwiss = this.criarTorneioSuico(ipTorneio);
+    let vaTorneio = this.criarTorneio(ipTorneio);
 
+    //avanca para o proximo round se necessario
+    vaTorneio.nextRound();
     //vamos pegar a proxima rodada se disponivel
-    if (vaTorneioSwiss.currentRound >= 0 && vaTorneioSwiss.active) {
+    if (vaTorneio.currentRound >= 0 && vaTorneio.active) {
       //se true, indica que uma nova rodada começou
-      if (ipTorneio.rodada_atual < vaTorneioSwiss.currentRound) {
-        let vaMatches = vaTorneioSwiss.activeMatches(
-          vaTorneioSwiss.currentRound
+      if (ipTorneio.rodada_atual < vaTorneio.currentRound + (vaTorneio.numberOfRounds * (vaTorneio.currentPhase?vaTorneio.currentPhase-1:0))) {
+        let vaMatches = vaTorneio.activeMatches(
+          vaTorneio.currentRound
         );
 
         if (vaMatches && vaMatches.length > 0) {
           let vaRodada = new Rodada();
           vaRodada.data_inicio = new Date();
           vaRodada.numero = vaMatches[0].round; //sera sempre o mesmo valor
+          vaRodada.fase = vaMatches[0].phase;
           ipTorneio.rodada_atual = vaRodada.numero;
           for (const vaMatch of vaMatches) {
             let vaPartida = new Partida();
@@ -89,11 +116,21 @@ module.exports = class TournamentOrganizer {
           ipTorneio.rodadas.push(vaRodada);
           vaResult = true;
         }
+      } else if (vaTorneio.currentRound == vaTorneio.numberOfRounds) {
+        let vaMatches = vaTorneio.activeMatches(
+          vaTorneio.currentRound
+        );
+        if (vaMatches.length == 0) {
+          vaTorneio.active = false;
+          ipTorneio.status = 2;
+          vaResult = true;
+        }
       }
 
-      if (await this.buscarResultados(ipTorneio)){
+      if (await this.buscarResultados(ipTorneio)) {
         vaResult = true;
       }
+      
     } else {
       ipTorneio.status = 2;
       vaResult = true;

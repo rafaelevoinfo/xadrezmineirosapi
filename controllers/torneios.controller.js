@@ -86,7 +86,10 @@ class TorneioController {
     let vaDocRef = await this.firestore.collection("torneios").doc(ipId);
     if (vaDocRef) {
       let vaDoc = await vaDocRef.get();
-      return this.castDocumentDataToTorneio(vaDoc);
+      let vaTorneio = this.castDocumentDataToTorneio(vaDoc);
+      let vaOrganizer = new TournamentOrganizer();
+      vaOrganizer.calcularPontuacao(vaTorneio);
+      return vaTorneio;
     } else {
       return null;
     }
