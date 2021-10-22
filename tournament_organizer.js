@@ -41,10 +41,22 @@ module.exports = class TournamentOrganizer {
     vaTorneio.startEvent();
 
     //vamos alimentar o vaTorneio com as informações que ja temos
-    if (ipTorneio.rodadas && ipTorneio.rodadas.length > 0) {
-      for (let i = 0; i < ipTorneio.rodadas.length; i++) {
-        let vaRodada = ipTorneio.rodadas[i];
-        let vaMatches = vaTorneio.activeMatches(i + 1);
+    if (ipTorneio.tipo == TIPO_TORNEIO_PONTOS_CORRIDOS){
+      //aqui a qtde_rodadas representa as fases, entao preciso ir pecorrendo fase a fase para ir gerando as proximas
+      for (let i = 0; i < ipTorneio.qtde_rodadas; i++) {
+        this.carregarResultadosPartidas(ipTorneio, vaTorneio)  
+      }
+    } else{
+      this.carregarResultadosPartidas(ipTorneio, vaTorneio)
+    }
+    return vaTorneio;
+  }
+
+  carregarResultadosPartidas(ipTorneioFirebase, ipTorneio){
+    if (ipTorneioFirebase.rodadas && ipTorneioFirebase.rodadas.length > 0) {
+      for (let i = 0; i < ipTorneioFirebase.rodadas.length; i++) {
+        let vaRodada = ipTorneioFirebase.rodadas[i];
+        let vaMatches = ipTorneio.activeMatches(vaRodada.numero);
         for (const vaMatch of vaMatches) {
           if ((!vaRodada.fase) || (vaMatch.phase == vaRodada.fase)) {
             let vaPartida = vaRodada.partidas.find((p) => {
@@ -58,15 +70,13 @@ module.exports = class TournamentOrganizer {
               let vaPlayerOneWins = vaPartida.resultado == "1-0" ? 1 : 0;
               let vaPlayerTwoWins = vaPartida.resultado == "0-1" ? 1 : 0;
 
-              vaTorneio.result(vaMatch, vaPlayerOneWins, vaPlayerTwoWins);
+              ipTorneio.result(vaMatch, vaPlayerOneWins, vaPlayerTwoWins);
             }
           }
         }
-        vaTorneio.nextRound();
+        ipTorneio.nextRound();
       }
     }
-
-    return vaTorneio;
   }
 
   calcularPontuacao(ipTorneio) {
@@ -99,7 +109,7 @@ module.exports = class TournamentOrganizer {
           vaRodada.data_inicio = new Date();
           vaRodada.numero = vaMatches[0].round; //sera sempre o mesmo valor
           vaRodada.fase = vaMatches[0].phase;
-          ipTorneio.rodada_atual = vaRodada.numero;
+          ipTorneio.rodada_atual++;
           for (const vaMatch of vaMatches) {
             let vaPartida = new Partida();
             vaPartida.jogadorBrancas = new Jogador();
@@ -116,7 +126,9 @@ module.exports = class TournamentOrganizer {
           ipTorneio.rodadas.push(vaRodada);
           vaResult = true;
         }
-      } else if (vaTorneio.currentRound == vaTorneio.numberOfRounds) {
+      } else if ((vaTorneio.currentRound == vaTorneio.numberOfRounds) && 
+                 ((ipTorneio.tipo != TIPO_TORNEIO_PONTOS_CORRIDOS) ||
+                  (ipTorneio.qtde_rodadas == vaTorneio.currentPhase))) {
         let vaMatches = vaTorneio.activeMatches(
           vaTorneio.currentRound
         );
