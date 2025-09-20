@@ -29,8 +29,7 @@ if (process.env.DESENVOLVIMENTO) {
   });
 } else {
   firebase_admin.initializeApp({
-    //credential: firebase_admin.credential.applicationDefault()
-    credential: firebase_admin.credential.Certificate("etc/secrets/serviceAccountKey.json")
+    credential: firebase_admin.credential.applicationDefault()
   });
 }
 
